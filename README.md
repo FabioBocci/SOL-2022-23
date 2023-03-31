@@ -1,3 +1,6 @@
+This is project required by the exam of SOL (Operating Systems and Lab) by University of Pisa year 2022/23.
+to follow, the description of the project given by the professor in Italian.
+
 # *farm*
 Progetto Laboratorio di Sistemi Operativi, Universita' di Pisa.
 
@@ -31,8 +34,8 @@ unitamente al nome del file, al processo *Collector* tramite la connessione sock
 Il processo *Collector* attende di ricevere tutti i risultati dai *Worker* ed al termine stampa i valori ottenuti sullo
 standard output, ordinando la stampa, nel formato seguente:
 
-risultato1 filepath1  
-risultato2 filepath2  
+risultato1 filepath1
+risultato2 filepath2
 risultato3 filepath3
 
 La stampa viene ordinata sulla base del risultato in modo crescente (risultato1<=risultato2<=risultato3, …). Il
@@ -47,11 +50,11 @@ al Collector. Ad esempio, supponendo che il file “mydir/*fileX.dat*” passato
 abbia dimensione 24 bytes, con il seguente contenuto (si ricorda che gli interi lunghi –*long*– sono codificati
 con 8 bytes in sistemi Linux a 64bit):
 
-3  
-2  
-4  
+3
+2
+4
 
-il risultato calcolato dal *Worker* sarà: ![](/utility/img/figura3.png) , quindi il processo Collector stamperà:  
+il risultato calcolato dal *Worker* sarà: ![](/utility/img/figura3.png) , quindi il processo Collector stamperà:
  10 mydir/fileX.dat
 
 Gli argomenti che opzionalmente possono essere passati al processo *MasterWorker* sono i seguenti:
@@ -70,11 +73,11 @@ altri file in input, e quindi terminare dopo aver atteso la terminazione del pro
 cancellazione del socket file. Il processo *Collector* maschera tutti i segnali gestiti dal processo *MasterWorker*.
 Il segnale SIGPIPE deve essere gestito opportunamente dai due processi.
 
-__Note__  
+__Note__
 La dimensione dei file in input non è limitata ad un valore massimo. Si supponga che la lunghezza del nome
 dei file (compreso il pathname) sia al massimo 255 caratteri.
-__generafile.c__ genera i file per i tests.  
-Lo script Bash (__test.sh__) contenente alcuni semplici test che il programma deve superare.  
+__generafile.c__ genera i file per i tests.
+Lo script Bash (__test.sh__) contenente alcuni semplici test che il programma deve superare.
 I test sono da eseguire su macchina virtuale Xubuntu, [download](http://xubuntu.org/). E' possibile, inoltre, scaricare un disco virtuale compresso dal seguente [link](http://calvados.di.unipi.it/storage/teaching/LinuxVM/xubuntu.vmdk.zip).
 
 
