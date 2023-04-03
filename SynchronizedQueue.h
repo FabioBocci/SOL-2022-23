@@ -1,10 +1,10 @@
 #ifndef SYNCHRONIZED__Q_H
 #define SYNCHRONIZED__Q_H
 
-void init(int size);
+void q_init(int size);
 
-void push(char* fileNamePush, char* filePathPush);
+void q_push(char* fileNamePush, char* filePathPush);
 
-void pop(char** outputFileName, char** outputFilePath);
+void q_pop(char** outputFileName, char** outputFilePath);
 
 #endif
