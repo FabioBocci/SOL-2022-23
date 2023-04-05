@@ -5,77 +5,62 @@
 #include <SynchronizedQueue.h>
 #include <string.h>
 
-#define GET_PUSH_INDEX (indexPush % arraySize)
-#define GET_POP_INDEX (indexPop % arraySize)
-#define IS_EMPTY (count == 0)
-#define CAN_PUSH (count < arraySize)
-#define IS_INITIALIZED(str) {\
-	if (arraySize < 0) {\
-		fprintf(stderr, "SynchronizedQueue is not INITIALIZED - %s ", str); \
-		exit(EXIT_FAILURE);\
-	}\
-}
+#define GET_QUEUE_SIZE(q) (q -> arraySize)
+#define GET_PUSH_INDEX(q) ((q -> indexPush) %  GET_QUEUE_SIZE(q))
+#define GET_POP_INDEX(q) ((q -> indexPop) % GET_QUEUE_SIZE(q))
+#define IS_EMPTY(q) ((q -> count) == 0)
+#define CAN_PUSH(q) ((q -> count) < GET_QUEUE_SIZE(q))
 
-typedef struct Element {
-	char* fileName;
-	char* filePath;
-} element;
+queue* q_init(int size) {
+	queue * q = (queue *) malloc(sizeof(queue));
 
-element** arr;
-int arraySize = -1;
-int indexPop = 0;
-int indexPush = -1;
-int count = 0;
+	q->arr = (element**) malloc(size * sizeof(element*));
+	q->arraySize = size;
+	q->indexPush = size;
+	q->indexPop = 0;
+	q->count = 0;
 
+	pthread_mutex_init(&q->mutex, NULL);
+    pthread_cond_init(&q->cond_push, NULL);
+    pthread_cond_init(&q->cond_pop, NULL);
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
-pthread_cond_t cond_push = PTHREAD_COND_INITIALIZER;
-pthread_cond_t cond_pop = PTHREAD_COND_INITIALIZER;
-
-
-void q_init(int size) {
-	arr = (element**) malloc(size * sizeof(element*));
-	arraySize = size;
-	indexPush = size;
+	return q;
 }
 
 
-void q_push(char* fileNamePush, char* filePathPush) {
-	pthread_mutex_lock(&mutex);
-	IS_INITIALIZED("push");
-	while(!CAN_PUSH) {
+void q_push(queue* q, char* fileNamePush, char* filePathPush) {
+	pthread_mutex_lock(&(q->mutex));
+	while(!CAN_PUSH(q)) {
 		//wait signal from pop
-		pthread_cond_wait(&cond_push, &mutex);
+		pthread_cond_wait(&(q->cond_push), &(q->mutex));
 	}
 
 	element* elementToPush = (element*) malloc(sizeof(element));
-	arr[GET_PUSH_INDEX] = elementToPush;
+	(q->arr)[GET_PUSH_INDEX(q)] = elementToPush;
 	elementToPush->fileName = (char*) malloc((strlen(fileNamePush) + 1) * sizeof(char));
 	strcpy(elementToPush->fileName, fileNamePush);
 	elementToPush->filePath = (char*) malloc((strlen(filePathPush) + 1) * sizeof(char));
 	strcpy(elementToPush->filePath, filePathPush);
 
 
-	indexPush++;
-	count++;
+	q->indexPush++;
+	q->count++;
 	//send signal for pop
-	pthread_cond_signal(&cond_pop);
-	pthread_mutex_unlock(&mutex);
+	pthread_cond_signal(&(q->cond_pop));
+	pthread_mutex_unlock(&(q->mutex));
 
 }
 
-void q_pop(char** outputFileName, char** outputFilePath) {
-	pthread_mutex_lock(&mutex);
-	IS_INITIALIZED("pop");
-	while(IS_EMPTY) {
+void q_pop(queue* q, char** outputFileName, char** outputFilePath) {
+	pthread_mutex_lock(&(q->mutex));
+	while(IS_EMPTY(q)) {
 		//wait signal from push
-		pthread_cond_wait(&cond_push, &mutex);
+		pthread_cond_wait(&(q->cond_pop), &(q->mutex));
 	}
 
-	element* elementToPop = arr[GET_POP_INDEX];
-	indexPop++;
-	count--;
+	element* elementToPop = (q->arr)[GET_POP_INDEX(q)];
+	q->indexPop++;
+	q->count--;
 
 	*outputFileName = elementToPop->fileName;
 	*outputFilePath = elementToPop->filePath;
@@ -83,11 +68,6 @@ void q_pop(char** outputFileName, char** outputFilePath) {
     free(elementToPop);
 
 	//send signal to push
-	pthread_cond_signal(&cond_push);
-	pthread_mutex_unlock(&mutex);
+	pthread_cond_signal(&(q->cond_push));
+	pthread_mutex_unlock(&(q->mutex));
 }
-
-
-
-
-
