@@ -1,6 +1,3 @@
-
-
-
 #ifndef M_DEBUG
 
 #define DEBUGGER_KEY_HIGH "[D-HIGH] "
@@ -14,19 +11,19 @@
 
 #define DEBUGGER_PRINT_HIGH(str, ...) {\
 	if (M_DEBUG > DEBUG_LVL_MEDIUM) {\
-		fprintf(stdout, DEBUGGER_KEY_HIGH  str, ##__VA_ARGS__);\
+		fprintf(stdout, DEBUGGER_KEY_HIGH  str "\n", ##__VA_ARGS__);\
 	}\
 }
 
 #define DEBUGGER_PRINT_MEDIUM(str, ...) {\
 	if (M_DEBUG > DEBUG_LVL_LOW) {\
-		fprintf(stdout, DEBUGGER_KEY_MEDIUM str, ##__VA_ARGS__);\
+		fprintf(stdout, DEBUGGER_KEY_MEDIUM str "\n", ##__VA_ARGS__);\
 	}\
 }
 
 #define DEBUGGER_PRINT_LOW(str, ...) {\
 	if (M_DEBUG > DEBUG_LVL_DISABLED) {\
-		fprintf(stdout, DEBUGGER_KEY_LOW str, ##__VA_ARGS__);\
+		fprintf(stdout, DEBUGGER_KEY_LOW str "\n", ##__VA_ARGS__);\
 	}\
 }
 

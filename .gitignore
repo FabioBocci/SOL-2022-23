@@ -3,3 +3,7 @@
 
 #vscode files and folder
 .vscode/
+
+#ignore all example files and tmp folders
+*.dat
+tmp/
