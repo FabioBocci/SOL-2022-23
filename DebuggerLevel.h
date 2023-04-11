@@ -1,4 +1,5 @@
-#ifndef M_DEBUG
+#ifndef M_DEBUG_H
+#define M_DEBUG_H
 
 #define DEBUGGER_KEY_HIGH "[D-HIGH] "
 #define DEBUGGER_KEY_MEDIUM "[D-MEDIUM] "
@@ -52,6 +53,8 @@
 	}\
 }
 
-
+#ifndef M_DEBUG
 #define M_DEBUG DEBUG_LVL_HIGH
+#endif
+
 #endif
