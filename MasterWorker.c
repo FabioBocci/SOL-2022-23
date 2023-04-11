@@ -227,6 +227,7 @@ void* master_worker_thread_function(void* arg) {
             i++;
         } else if (mw->directoryName != MW_DEFAULT_DIRECTORY_NAME) {
             //explore dir!
+            //TODO - only thing missing is the file explorer from mw->directoryName
         }
 
         if (mw->segnalsHandler == MW_SIGNAL_STAMP_COLLECTOR) {
