@@ -1,13 +1,15 @@
 #ifndef SYNCHRONIZED__Q_H
 #define SYNCHRONIZED__Q_H
 
+#include <pthread.h>
+
 typedef struct Element {
 	char* fileName;
 	char* filePath;
 } element;
 
 typedef struct {
-	element** arr;
+	element* arr;
 	int arraySize;
 	int indexPop;
 	int indexPush;
@@ -25,8 +27,15 @@ typedef struct {
 
 queue* q_init(int size);
 
-void q_push(queue* q, char* fileNamePush, char* filePathPush);
+//return 0 if the queue now has the new element, -1 otherwise
+int q_push(queue* q, const char* fileNamePush, const char* filePathPush);
 
-void q_pop(queue* q, char** outputFileName, char** outputFilePath);
+//return 0 was able to remove the element from the queue and set outFileName and outputFilePath to the corrispective values, -1 otherwise
+int q_pop(queue* q, char** outputFileName, char** outputFilePath);
+
+//return 0 if the queue is empty, the number of elements inside otherwise
+int q_empty(queue* q);
+
+void q_destroy(queue *q);
 
 #endif
