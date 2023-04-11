@@ -1,4 +1,4 @@
-This is project required by the exam of SOL (Operating Systems and Lab) by University of Pisa year 2022/23.  
+This is project required by the exam of SOL (Operating Systems and Lab) by University of Pisa year 2022/23.  <br>
 To follow, the description of the project given by the professor written in Italian.
 
 # *farm*
