@@ -7,3 +7,7 @@
 #ignore all example files and tmp folders
 *.dat
 tmp/
+
+farm
+generafile
+*.txt
