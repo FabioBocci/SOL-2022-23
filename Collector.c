@@ -1,5 +1,5 @@
 #undef M_DEBUG
-#define M_DEBUG 1
+#define M_DEBUG 0
 
 #include <sys/socket.h>
 #include <sys/un.h>
