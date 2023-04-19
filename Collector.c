@@ -1,5 +1,5 @@
 #undef M_DEBUG
-#define M_DEBUG 0
+#define M_DEBUG 1
 
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -40,8 +40,6 @@ void insert_element(struct element** head, char* path, int value) {
         new_elem->next = curr->next;
         curr->next = new_elem;
     }
-
-    DEBUGGER_PRINT_LOW("[Collector] return of insert ");
 }
 
 // funzione per stampare la lista
