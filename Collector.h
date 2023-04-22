@@ -4,8 +4,8 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#define SOCKET_PATH "/tmp/mysocket2060"
-#define MAX_DATA_SIZE 500
+#define SOCKET_PATH "/tmp/mysocket2062"
+#define MAX_DATA_SIZE 1000
 
 
 

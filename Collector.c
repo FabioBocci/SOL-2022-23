@@ -11,12 +11,12 @@
 
 struct element {
     char * path;
-    int value;
+    long value;
     struct element* next;
 };
 
 // create a new elemento for the list
-struct element* create_element(char* path, int value) {
+struct element* create_element(char* path, long value) {
     struct element* new_elem;
     MM_MALLOC(new_elem, struct element);
 
@@ -27,7 +27,7 @@ struct element* create_element(char* path, int value) {
 }
 
 //insert a new value to the struct
-void insert_element(struct element** head, char* path, int value) {
+void insert_element(struct element** head, char* path, long value) {
     struct element* new_elem = create_element(path, value);
     if (*head == NULL || value < (*head)->value) {
         new_elem->next = *head;
@@ -46,7 +46,12 @@ void insert_element(struct element** head, char* path, int value) {
 void print_list(struct element* head) {
     struct element* curr = head;
     while (curr != NULL) {
-        fprintf(stdout, "%d \t %s\n", curr->value, curr->path);
+        // Check if the path starts with "./"
+        if (strncmp(curr->path, "./", 2) == 0) {
+            // Remove the first two characters
+            memmove(curr->path, curr->path + 2, strlen(curr->path) - 1);
+        }
+        fprintf(stdout, "%ld \t %s\n", curr->value, curr->path);
         curr = curr->next;
     }
 }
@@ -132,9 +137,9 @@ void c_start() {
             //message from collector full path:fileName:value
             char * fileName = strtok(NULL, ":");
             char * valueString = strtok(NULL, ":");
-            int value = atoi(valueString);
+            long value = atol(valueString);
 
-            DEBUGGER_PRINT_LOW("[Collector] <FilePath : file name : value> | %s | %s | %d ", pathOrMaster, fileName, value);
+            DEBUGGER_PRINT_LOW("[Collector] <FilePath : file name : value> | %s | %s | %ld ", pathOrMaster, fileName, value);
             insert_element(&head, pathOrMaster, value);
         }
     }
