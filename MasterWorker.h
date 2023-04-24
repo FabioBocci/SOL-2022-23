@@ -14,6 +14,7 @@
 #define MW_SIGNAL_STOP_READING 2
 //stop reading new files and exploring the folders, start waiting for the program to end.
 
+//main structure of master worker.
 typedef struct {
 
 	int threadNumber;
@@ -29,18 +30,23 @@ typedef struct {
 
 } masterworker;
 
+//simple dinamic list to store file and its path
 typedef struct fileToLoad {
     char * fileName;
     char * dirPath;
     struct fileToLoad * next;
 } fileToLoad;
 
+//Allocate and create a new masterworker with the values passed as its values
 masterworker* mw_init(int threadNumber, int queueLenght, char* directoryName, int delay, char* pathToSocketFile);
 
+//Start a new thread for the master worker, and also pass the list of files to initialy process
 int mw_start(masterworker * mw, struct fileToLoad * listOfFiles);
 
+//Wait that the thread created for this masterworker mw has finished
 int mw_wait(masterworker * mw);
 
+//Clear memory and destroy the master worker MUST use after wait.
 void mw_destroy(masterworker * mw);
 
 #endif

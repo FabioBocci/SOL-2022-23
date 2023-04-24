@@ -114,7 +114,7 @@ int q_empty(queue* q) {
 
 
 void q_destroy(queue * q) {
-	// Assicurati che la coda sia vuota
+	// for this project we only exit if the queue is empty so if is not when destroied its a bug
 	if (q->count != 0) {
 		fprintf(stderr, "[Q] destroying queue not empty! this is a bug! \n");
 		abort();

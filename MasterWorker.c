@@ -18,12 +18,13 @@
 #include <Collector.h>
 #include <dirent.h>
 
-
+//Externs used from MemoryManager.h
 unsigned long long memoryAllocated = 0;
 int numberOfMalloc = 0;
 int numberOfFree = 0;
+//END externs
 
-
+// Utility structs to pass args to threads functions
 typedef struct {
 	masterworker *mw;
 	fileToLoad * listOfFiles;
@@ -41,8 +42,9 @@ typedef struct {
 	pthread_cond_t cond;
 
 } workerThreadArgs;
+// END Utility structs
 
-
+//simple function who open and read the values from the file passed as argument
 long read_file_calculate_sum(char* pathToFile) {
 	FILE *fp = fopen(pathToFile, "rb");
 	if (fp == NULL) {
@@ -52,7 +54,6 @@ long read_file_calculate_sum(char* pathToFile) {
 	}
 	// Read numbers and calculate sum
 	long sum = 0, line_number = 0, buffer;
-	//char line[256];
 	while(fread(&buffer, sizeof(buffer), 1, fp) == 1) {
 		sum += buffer * line_number;
 		//fprintf(stderr, "file: %s | linechar: %ld | line: %ld | num: %ld | num * line: %ld | sum: %ld \n", pathToFile, buffer, line_number, buffer, buffer * line_number, sum);
@@ -64,6 +65,8 @@ long read_file_calculate_sum(char* pathToFile) {
 	return sum;
 }
 
+//Utility function to check if the string passed end with .dat (is one of the file to read)
+//return 0 if the string end with .dat, -1 otherwise
 int end_with_dat_string(char * str) {
 	char *endWithStr = ".dat";
 
@@ -106,7 +109,7 @@ int try_connect_to_collector(struct sockaddr_un * serveraddr, int attempts, floa
 	return -1;
 }
 
-
+//function used from worker to send a message to the socket
 void send_message_to_collector(int socketfd, char * fullPath, char * fileName, long result) {
 	int rs;
 	char msg[MAX_DATA_SIZE];
@@ -117,6 +120,7 @@ void send_message_to_collector(int socketfd, char * fullPath, char * fileName, l
 	}
 }
 
+//function used from MW to send a message signal to the socket, it also use internaly mutex cond and flag to get prio.
 void master_send_message_to_collector(int socketFd, const char * message, int * flagPrio, pthread_mutex_t * mutex, pthread_cond_t * cond) {
 	int rs;
 	*flagPrio = 1;
@@ -135,7 +139,7 @@ void master_send_message_to_collector(int socketFd, const char * message, int * 
 	pthread_mutex_unlock(mutex);
 }
 
-
+//main function of thread worker
 void* worker_thread_function(void * arg) {
 	DEBUGGER_PRINT_LOW("[Worker] thread started");
 	workerThreadArgs * args = (workerThreadArgs *) arg;
@@ -179,16 +183,13 @@ void* worker_thread_function(void * arg) {
 		}
 		//pop didn't work check for flags and go back in pop
 	}
-	if ((*masterFlag) != 0) {
-		DEBUGGER_PRINT_LOW("[Worker] master flag != 0 | value: %d", (*masterFlag));
-	}
 
 	DEBUGGER_PRINT_LOW("[Worker] thread exit");
-	//worker thread has finished and the master want to stop, closing this
+	//worker thread has finished and the master want to stop, closing
 	return NULL;
-
 }
 
+//main function of thread master worker
 void* master_worker_thread_function(void* arg) {
 
 	DEBUGGER_PRINT_LOW("[mw] Started function Master Worker");
@@ -210,6 +211,7 @@ void* master_worker_thread_function(void* arg) {
 	serveraddr.sun_family = AF_UNIX;
 	strcpy(serveraddr.sun_path, SOCKET_PATH);
 
+	//try to connect to the server (Collector)
 	int socketFd = try_connect_to_collector(&serveraddr, 10, 1);
 
 	int val = 1;
@@ -230,6 +232,7 @@ void* master_worker_thread_function(void* arg) {
 	pthread_cond_init(&workerArgs->cond, NULL);
 
 	DEBUGGER_PRINT_LOW("[mw] creating workers threads");
+	//Create n thread workers
 	for(int i = 0; i < mw->threadNumber; i++) {
 		if (pthread_create(&(mw->workersArray)[i], NULL, &worker_thread_function, workerArgs) != 0) {
 			perror("[mw] Couldn't create thread worker");
@@ -251,6 +254,7 @@ void* master_worker_thread_function(void* arg) {
 
 	int stop = 0;
 
+	//processing files and dir
 	while (stop == 0) {
 		if (currentFileHead != NULL) {
 			while(q_push(mw->synchronizedQueue, currentFileHead->fileName, currentFileHead->dirPath) == -1) {
@@ -271,6 +275,8 @@ void* master_worker_thread_function(void* arg) {
 				MM_FREE(tmp);
 			}
 			currentFileTail = NULL;
+			//this is not null if we just pushed a new file inside the list when exploring a dir, we need to reset this to null
+			//no memory lost since we have clear it up from the head
 		} else if (dirToExplore != NULL) {
 			DIR * currentDir = opendir(dirToExplore->dirPath);
 			if (currentDir != NULL) {
@@ -326,6 +332,7 @@ void* master_worker_thread_function(void* arg) {
 			continue;
 		}
 
+		//check if we recived a signal
 		if (mw->segnalsHandler == MW_SIGNAL_STAMP_COLLECTOR) {
 			master_send_message_to_collector(socketFd, "MASTER:STAMP", masterWorkerSocketPrio, &workerArgs->mutex, &workerArgs->cond);
 		} else if (mw->segnalsHandler == MW_SIGNAL_STOP_READING) {
@@ -396,6 +403,7 @@ void* master_worker_thread_function(void* arg) {
 	return NULL;
 }
 
+//init a new master worker
 masterworker* mw_init(int threadNumber, int queueLenght, char* directoryName, int delay, char * pathToSocketFile) {
 
 	DEBUGGER_PRINT_MEDIUM("[mw] Creating new MasterWorker");
@@ -419,6 +427,7 @@ masterworker* mw_init(int threadNumber, int queueLenght, char* directoryName, in
 	return mw;
 }
 
+//start new thead for master worker
 int mw_start(masterworker *mw, fileToLoad * listOfFiles) {
 	masterWorkerThreadArgs* mwArgs;
 	MM_MALLOC(mwArgs, masterWorkerThreadArgs);
@@ -434,6 +443,7 @@ int mw_start(masterworker *mw, fileToLoad * listOfFiles) {
 	return 0;
 }
 
+//wait master worker thread
 int mw_wait(masterworker *mw) {
 	DEBUGGER_PRINT_LOW("[Main] thread waiting master worker");
 	// Wait for the master-worker main thread to finish
@@ -442,11 +452,11 @@ int mw_wait(masterworker *mw) {
 		return 1;
 	}
 
-
 	DEBUGGER_PRINT_LOW("[Main] Master-worker main thread finished");
 	return 0;
 }
 
+//clear memory
 void mw_destroy(masterworker * mw) {
 	DEBUGGER_PRINT_LOW("[mw] destroying MW\n");
 	q_destroy(mw->synchronizedQueue);
