@@ -11,7 +11,7 @@ main.o :
 	$(CC) $(CFLAGS) -c Main.c
 
 masterworker.o:
-	$(CC) $(CFLAGS) -c Masterworker.c
+	$(CC) $(CFLAGS) -c MasterWorker.c
 
 worker.o :
 	$(CC) $(CFLAGS) -c Worker.c
