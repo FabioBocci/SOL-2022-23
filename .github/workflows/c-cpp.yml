@@ -17,6 +17,8 @@ jobs:
       run: ls -la
     - name: make
       run: make all
+    - name: show
+      run: ls -la
     - name: move file
       run: mv farm /utility
     - name: run test
