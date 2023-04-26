@@ -4,7 +4,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-#define SOCKET_PATH "/tmp/mysocket2062"
+#define SOCKET_PATH "/tmp/farm.sck"
 #define MAX_DATA_SIZE 1000
 
 

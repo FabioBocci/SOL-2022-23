@@ -2,6 +2,7 @@
 #define M_DEBUG 0
 
 #include <MasterWorker.h>
+#include <Worker.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -31,39 +32,7 @@ typedef struct {
 
 } masterWorkerThreadArgs;
 
-typedef struct {
-	queue *q;
-	int * mwFlag;
 
-	int * socketChannel;
-	int * masterSocketPrio;
-
-	pthread_mutex_t mutex;
-	pthread_cond_t cond;
-
-} workerThreadArgs;
-// END Utility structs
-
-//simple function who open and read the values from the file passed as argument
-long read_file_calculate_sum(char* pathToFile) {
-	FILE *fp = fopen(pathToFile, "rb");
-	if (fp == NULL) {
-		DEBUGGER_PRINT_LOW("Unable to open file %s", pathToFile);
-		perror("fopen");
-		exit(EXIT_FAILURE);
-	}
-	// Read numbers and calculate sum
-	long sum = 0, line_number = 0, buffer;
-	while(fread(&buffer, sizeof(buffer), 1, fp) == 1) {
-		sum += buffer * line_number;
-		//fprintf(stderr, "file: %s | linechar: %ld | line: %ld | num: %ld | num * line: %ld | sum: %ld \n", pathToFile, buffer, line_number, buffer, buffer * line_number, sum);
-		line_number++;
-		buffer = 0;
-	}
-
-	fclose(fp);
-	return sum;
-}
 
 //Utility function to check if the string passed end with .dat (is one of the file to read)
 //return 0 if the string end with .dat, -1 otherwise
@@ -109,16 +78,7 @@ int try_connect_to_collector(struct sockaddr_un * serveraddr, int attempts, floa
 	return -1;
 }
 
-//function used from worker to send a message to the socket
-void send_message_to_collector(int socketfd, char * fullPath, char * fileName, long result) {
-	int rs;
-	char msg[MAX_DATA_SIZE];
-	snprintf(msg, MAX_DATA_SIZE, "%s:%s:%ld", fullPath, fileName, result);
-	rs = send(socketfd, msg, strlen(msg), 0);
-	if (rs < 0) {
-		perror("send() failed");
-	}
-}
+
 
 //function used from MW to send a message signal to the socket, it also use internaly mutex cond and flag to get prio.
 void master_send_message_to_collector(int socketFd, const char * message, int * flagPrio, pthread_mutex_t * mutex, pthread_cond_t * cond) {
@@ -134,59 +94,8 @@ void master_send_message_to_collector(int socketFd, const char * message, int * 
 	if (rs < 0) {
 		perror("[Master] send() failed");
 	}
-	sleep(5);
 	pthread_cond_broadcast(cond);
 	pthread_mutex_unlock(mutex);
-}
-
-//main function of thread worker
-void* worker_thread_function(void * arg) {
-	DEBUGGER_PRINT_LOW("[Worker] thread started");
-	workerThreadArgs * args = (workerThreadArgs *) arg;
-	queue * q = args->q;
-	int * masterFlag = args->mwFlag;
-	int * masterPrio = args->masterSocketPrio;
-	int * socketFd = args->socketChannel;
-	pthread_mutex_t mutex = args->mutex;
-	pthread_cond_t cond = args->cond;
-
-	char *fileName = NULL, *filePath = NULL;
-
-	while ((*masterFlag) == 0 || q_empty(q) != 0) {
-		if (q_pop(q, &fileName, &filePath) == 0) {
-			DEBUGGER_PRINT_LOW("[Worker] after pop");
-			//pop worked
-			char fullPath[255];
-			sprintf(fullPath, "%s/%s", filePath, fileName);
-
-			DEBUGGER_PRINT_LOW("[Worker] thread opening file %s", fullPath);
-			long sum = read_file_calculate_sum(fullPath);
-
-			pthread_mutex_lock(&mutex);
-
-			while((*masterPrio) > 0) {
-				pthread_cond_wait(&cond, &mutex);
-			}
-
-			if ((*socketFd) > 0) {
-				DEBUGGER_PRINT_LOW("[Worker] sending value %ld for %s", sum, fullPath);
-				send_message_to_collector(*socketFd, fullPath, fileName, sum);
-			} else {
-				fprintf(stderr, "[ERROR] [Worker] socket channel <= 0 | %d | this is a bug! \n", * socketFd);
-			}
-
-			pthread_cond_broadcast(&cond);
-			pthread_mutex_unlock(&mutex);
-
-			MM_FREE(fileName);
-			MM_FREE(filePath);
-		}
-		//pop didn't work check for flags and go back in pop
-	}
-
-	DEBUGGER_PRINT_LOW("[Worker] thread exit");
-	//worker thread has finished and the master want to stop, closing
-	return NULL;
 }
 
 //main function of thread master worker
@@ -221,20 +130,17 @@ void* master_worker_thread_function(void* arg) {
 	//processing master worker
 	//we need to create n threads workers and give them the queue Q and the flag
 
-	workerThreadArgs * workerArgs;
-	MM_MALLOC(workerArgs, workerThreadArgs);
-	workerArgs->q = mw->synchronizedQueue;
-	workerArgs->mwFlag = masterWorkerFlag;
-	workerArgs->masterSocketPrio = masterWorkerSocketPrio;
-	MM_MALLOC(workerArgs->socketChannel, int);
-	(* workerArgs->socketChannel) = socketFd;
-	pthread_mutex_init(&workerArgs->mutex, NULL);
-	pthread_cond_init(&workerArgs->cond, NULL);
+
+
+	pthread_mutex_t mutex;
+	pthread_cond_t cond;
+	pthread_mutex_init(&mutex, NULL);
+	pthread_cond_init(&cond, NULL);
 
 	DEBUGGER_PRINT_LOW("[mw] creating workers threads");
 	//Create n thread workers
 	for(int i = 0; i < mw->threadNumber; i++) {
-		if (pthread_create(&(mw->workersArray)[i], NULL, &worker_thread_function, workerArgs) != 0) {
+		if (worker_create(&(mw->workersArray)[i], mw->synchronizedQueue, masterWorkerFlag, masterWorkerSocketPrio, socketFd, &mutex, &cond) != 0) {
 			perror("[mw] Couldn't create thread worker");
 			return NULL;
 		}
@@ -334,7 +240,7 @@ void* master_worker_thread_function(void* arg) {
 
 		//check if we recived a signal
 		if (mw->segnalsHandler == MW_SIGNAL_STAMP_COLLECTOR) {
-			master_send_message_to_collector(socketFd, "MASTER:STAMP", masterWorkerSocketPrio, &workerArgs->mutex, &workerArgs->cond);
+			master_send_message_to_collector(socketFd, "MASTER:STAMP", masterWorkerSocketPrio, &mutex, &cond);
 		} else if (mw->segnalsHandler == MW_SIGNAL_STOP_READING) {
 			DEBUGGER_PRINT_LOW("[mw] recived signal to stop!");
 			stop = 1;
@@ -352,14 +258,14 @@ void* master_worker_thread_function(void* arg) {
 	//Wait all the workers to end their thread
 	for (int i = 0; i < mw->threadNumber; i++) {
 		DEBUGGER_PRINT_LOW("[mw] waiting worker i %d of %d | %02lx", i, mw->threadNumber, (mw->workersArray)[i]);
-		if (pthread_join((mw->workersArray)[i], NULL) != 0) {
-			perror("pthread_join failed");
+		if (worker_wait((mw->workersArray)[i]) != 0) {
+			perror("worker_wait failed");
 			return NULL;
 		}
 	}
 
 	//final message to collector so he know we are closing
-	master_send_message_to_collector(socketFd, "MASTER:CLOSE", masterWorkerSocketPrio, &workerArgs->mutex, &workerArgs->cond);
+	master_send_message_to_collector(socketFd, "MASTER:CLOSE", masterWorkerSocketPrio, &mutex, &cond);
 
 	//Free memory used for workers and masterworker thread
 	close(socketFd);
@@ -390,10 +296,8 @@ void* master_worker_thread_function(void* arg) {
 	}
 
 	MM_FREE(masterWorkerSocketPrio);
-	MM_FREE(workerArgs->socketChannel);
-	pthread_mutex_destroy(&workerArgs->mutex);
-	pthread_cond_destroy(&workerArgs->cond);
-	MM_FREE(workerArgs);
+	pthread_mutex_destroy(&mutex);
+	pthread_cond_destroy(&cond);
 	MM_FREE(masterWorkerFlag);
 
 
@@ -470,147 +374,3 @@ void mw_destroy(masterworker * mw) {
 }
 
 
-masterworker * gobalMasterWorker;
-//i would have prefered not using a global master worker and passing the argument in the signal_handler
-//but seams that you can't do that in this
-
-void signal_handler(int signum) {
-	//int signum, siginfo_t* info, void* context
-	//masterworker* mw = (masterworker*) info->si_value.sival_ptr; //can't use this
-
-	if (signum == SIGPIPE) {
-		fprintf(stderr, "DIO CANEEEE SI è ROTTA LA PIPE! \n");
-	}
-
-
-	if (signum == SIGUSR1) {
-		//mw should send a message to collector to stamp all the infos
-		gobalMasterWorker->segnalsHandler = MW_SIGNAL_STAMP_COLLECTOR;
-	} else {
-		//mw shoudl start
-		gobalMasterWorker->segnalsHandler = MW_SIGNAL_STOP_READING;
-	}
-}
-
-void signal_handler_empty(int signum) {
-}
-
-
-int main(int argc, char* argv[]) {
-	DEBUGGER_INFO();
-
-	int nthread = MW_DEFUALT_THREAD_NUMBER;
-	int qlen = MW_DEFAULT_QUEUE_LENGHT;
-	char* directory_name = MW_DEFAULT_DIRECTORY_NAME;
-	int delay = MW_DEFAULT_DELAY;
-
-	//i'd love to use (opt = getopt(argc, argv, "n:q:d:t:") to handle the option but from the request the list of files can be input at any time even in the middle of other options.
-
-	//used to read and store info about the file we read
-	fileToLoad * head = NULL;
-	fileToLoad * tail = head;
-
-	for (int i = 1; i < argc; i++) {
-		if (argv[i][0] == '-') {
-			//reading an option
-			switch (argv[i][1]) {
-				case 'n':
-					nthread = atoi(argv[i + 1]);
-					DEBUGGER_PRINT_LOW("Custom number of thread -n %d", nthread);
-					break;
-				case 'q':
-					qlen = atoi(argv[i + 1]);
-					DEBUGGER_PRINT_LOW("Custom size of queue -q %d", qlen);
-					break;
-				case 'd':
-					directory_name = argv[i + 1];
-					DEBUGGER_PRINT_LOW("Custom directory -d %s", directory_name);
-					break;
-				case 't':
-					delay = atoi(argv[i + 1]);
-					DEBUGGER_PRINT_LOW("Custom delay -t %d", delay);
-					break;
-
-				default:
-					fprintf(stderr, "Usage: %s [-n nthread] [-q qlen] [-d directory-name] [-t delay]\n", argv[0]);
-					exit(EXIT_FAILURE);
-					break;
-			}
-			i++; //skip the next value
-		} else {
-			DEBUGGER_PRINT_LOW("[MAIN] FILE | %s \n", argv[i]);
-			if (head == NULL || tail == NULL) {
-				MM_MALLOC(head, fileToLoad);
-				tail = head;
-
-			} else {
-				MM_MALLOC(tail->next, fileToLoad);
-				tail = tail->next;
-			}
-			tail->fileName = malloc(strlen(argv[i]) + 1);
-			strcpy(tail->fileName, argv[i]);
-			tail->dirPath = malloc(strlen(".") + 1);
-			strcpy(tail->dirPath, ".");
-			tail->next = NULL;
-
-		}
-	}
-
-
-	// Validate command line arguments
-	if (nthread < 1 || qlen < 1 || delay < 0) {
-		fprintf(stderr, "[Main] Invalid command line arguments\n");
-		exit(EXIT_FAILURE);
-	}
-
-	pid_t pid = fork();
-	if (pid == -1) {
-		perror("fork() failed");
-		exit(EXIT_FAILURE);
-	} else if (pid == 0) {
-		//child aka Collector
-		//start the collector
-		DEBUGGER_PRINT_LOW("[Main] starting collector");
-
-		signal(SIGHUP, signal_handler_empty);
-		signal(SIGINT, signal_handler_empty);
-		signal(SIGQUIT, signal_handler_empty);
-		signal(SIGTERM, signal_handler_empty);
-		signal(SIGUSR1, signal_handler_empty);
-		signal(SIGPIPE, signal_handler_empty);
-		c_start();
-	} else {
-		//father aka MasterWorker
-		gobalMasterWorker = mw_init(nthread, qlen, directory_name, delay, SOCKET_PATH);
-
-		signal(SIGHUP, signal_handler);
-		signal(SIGINT, signal_handler);
-		signal(SIGQUIT, signal_handler);
-		signal(SIGTERM, signal_handler);
-		signal(SIGUSR1, signal_handler);
-		signal(SIGPIPE, signal_handler);
-
-
-
-		// Start the master-worker system
-		if (mw_start(gobalMasterWorker, head) != 0) {
-			fprintf(stderr, "[Main] Failed to start master-worker system\n");
-			exit(EXIT_FAILURE);
-		}
-
-
-		if (mw_wait(gobalMasterWorker) != 0) {
-			fprintf(stderr, "[Main] Failed to wait master-worker system\n");
-			exit(EXIT_FAILURE);
-		}
-
-
-		mw_destroy(gobalMasterWorker);
-
-		MM_INFO();
-	}
-
-
-
-	return EXIT_SUCCESS;
-}
