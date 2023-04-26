@@ -7,7 +7,7 @@ all: main clean
 main: main.o worker.o masterworker.o synchronizedqueue.o collector.o
 	$(CC) $(CFLAGS) -o farm main.o masterworker.o worker.o synchronizedqueue.o collector.o
 
-main.o : main.c masterworker.h
+main.o :
 	$(CC) $(CFLAGS) -c main.c
 
 masterworker.o: masterworker.c masterworker.h synchronizedqueue.h debuggerlevel.h collector.h worker.h
