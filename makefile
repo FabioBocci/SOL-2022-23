@@ -5,7 +5,7 @@ CFLAGS=-Wall -Wextra -pedantic -I. -pthread -lpthread
 all: main clean
 
 main: main.o worker.o masterworker.o synchronizedqueue.o collector.o
-	$(CC) $(CFLAGS) -o farm main.o masterworker.o worker.o synchronizedqueue.o collector.o
+	$(CC) $(CFLAGS) -o farm Main.o MasterWorker.o Worker.o SynchronizedQueue.o Collector.o
 
 main.o :
 	$(CC) $(CFLAGS) -c Main.c
