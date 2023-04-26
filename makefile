@@ -10,16 +10,16 @@ main: main.o worker.o masterworker.o synchronizedqueue.o collector.o
 main.o :
 	$(CC) $(CFLAGS) -c Main.c
 
-masterworker.o: masterworker.c masterworker.h synchronizedqueue.h debuggerlevel.h collector.h worker.h
+masterworker.o:
 	$(CC) $(CFLAGS) -c Masterworker.c
 
-worker.o : worker.c worker.h
+worker.o :
 	$(CC) $(CFLAGS) -c Worker.c
 
-synchronizedqueue.o: synchronizedqueue.c synchronizedqueue.h
+synchronizedqueue.o:
 	$(CC) $(CFLAGS) -c SynchronizedQueue.c
 
-collector.o: Collector.c collector.h
+collector.o:
 	$(CC) $(CFLAGS) -c Collector.c
 
 clean:
