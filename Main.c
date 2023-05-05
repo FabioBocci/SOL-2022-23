@@ -26,10 +26,6 @@ void signal_handler(int signum) {
 	//int signum, siginfo_t* info, void* context
 	//masterworker* mw = (masterworker*) info->si_value.sival_ptr; //can't use this
 
-	if (signum == SIGPIPE) {
-		fprintf(stderr, "DIO CANEEEE SI è ROTTA LA PIPE! \n");
-	}
-
 
 	if (signum == SIGUSR1) {
 		//mw should send a message to collector to stamp all the infos
