@@ -5,22 +5,22 @@ CFLAGS=-Wall -Wextra -pedantic -I. -pthread -lpthread
 all: main clean
 
 main: main.o worker.o masterworker.o synchronizedqueue.o collector.o
-	$(CC) $(CFLAGS) -o farm main.o masterworker.o worker.o synchronizedqueue.o collector.o
+	$(CC) $(CFLAGS) -o farm Main.o MasterWorker.o Worker.o SynchronizedQueue.o Collector.o
 
-main.o : main.c masterworker.h
-	$(CC) $(CFLAGS) -c main.c
+main.o :
+	$(CC) $(CFLAGS) -c Main.c
 
-masterworker.o: masterworker.c masterworker.h synchronizedqueue.h debuggerlevel.h collector.h worker.h
-	$(CC) $(CFLAGS) -c masterworker.c
+masterworker.o:
+	$(CC) $(CFLAGS) -c MasterWorker.c
 
-worker.o : worker.c worker.h
-	$(CC) $(CFLAGS) -c worker.c
+worker.o :
+	$(CC) $(CFLAGS) -c Worker.c
 
-synchronizedqueue.o: synchronizedqueue.c synchronizedqueue.h
-	$(CC) $(CFLAGS) -c synchronizedqueue.c
+synchronizedqueue.o:
+	$(CC) $(CFLAGS) -c SynchronizedQueue.c
 
-collector.o: collector.c collector.h
-	$(CC) $(CFLAGS) -c collector.c
+collector.o:
+	$(CC) $(CFLAGS) -c Collector.c
 
 clean:
 	rm -f *.o collector
