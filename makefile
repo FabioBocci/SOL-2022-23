@@ -2,25 +2,25 @@ CC=gcc
 CFLAGS=-Wall -Wextra -pedantic -I. -pthread -lpthread
 
 
-all: main clean
+all: Main clean
 
-main: main.o worker.o masterworker.o synchronizedqueue.o collector.o
-	$(CC) $(CFLAGS) -o farm main.o masterworker.o worker.o synchronizedqueue.o collector.o
+Main: Main.o Worker.o Masterworker.o SynchronizedQueue.o Collector.o
+	$(CC) $(CFLAGS) -o farm Main.o Masterworker.o Worker.o SynchronizedQueue.o Collector.o
 
-main.o : main.c masterworker.h
-	$(CC) $(CFLAGS) -c main.c
+Main.o : Main.c Masterworker.h
+	$(CC) $(CFLAGS) -c Main.c
 
-masterworker.o: masterworker.c masterworker.h synchronizedqueue.h debuggerlevel.h collector.h worker.h
-	$(CC) $(CFLAGS) -c masterworker.c
+Masterworker.o: Masterworker.c Masterworker.h SynchronizedQueue.h debuggerlevel.h Collector.h Worker.h
+	$(CC) $(CFLAGS) -c Masterworker.c
 
-worker.o : worker.c worker.h
-	$(CC) $(CFLAGS) -c worker.c
+Worker.o : Worker.c Worker.h
+	$(CC) $(CFLAGS) -c Worker.c
 
-synchronizedqueue.o: synchronizedqueue.c synchronizedqueue.h
-	$(CC) $(CFLAGS) -c synchronizedqueue.c
+SynchronizedQueue.o: SynchronizedQueue.c SynchronizedQueue.h
+	$(CC) $(CFLAGS) -c SynchronizedQueue.c
 
-collector.o: collector.c collector.h
-	$(CC) $(CFLAGS) -c collector.c
+Collector.o: Collector.c Collector.h
+	$(CC) $(CFLAGS) -c Collector.c
 
 clean:
-	rm -f *.o collector
+	rm -f *.o Collector
